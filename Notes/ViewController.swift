@@ -15,7 +15,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     @IBOutlet weak var bottomTitleText: UILabel!
     
     @IBOutlet weak var tableView: UITableView!
-    
+
     var nameArray = [String]()
     var idArray = [UUID]()
     var noteArray = [String]()
@@ -50,9 +50,12 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     @objc func getData(){
+        tableView.sectionHeaderTopPadding = CGFloat(2)
         idArray.removeAll()
         nameArray.removeAll()
         noteArray.removeAll()
+        monthArray.removeAll()
+        dateArray.removeAll()
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         let context = appDelegate.persistentContainer.viewContext
         
@@ -79,16 +82,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                     self.tableView.reloadData()
                 }
             }
-            switch nameArray.count{
-            case 0:
-                bottomTitleText.text = "Нет заметок"
-            case 1:
-                bottomTitleText.text = "\(nameArray.count) заметка"
-            case 2..<5:
-                bottomTitleText.text = "\(nameArray.count) заметки"
-            default:
-                bottomTitleText.text = "\(nameArray.count) заметок"
-            }
+            printLable()
             self.tableView.reloadData()
         } catch {
             print("error")
@@ -104,83 +98,55 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         cellStyle.secondaryTextProperties.numberOfLines = 1
         cellStyle.secondaryTextProperties.lineBreakMode = .byTruncatingTail
         cellStyle.secondaryTextProperties.color = UIColor.lightGray
-//        let formatter = DateFormatter()
-//        formatter.setLocalizedDateFormatFromTemplate("MMMM")
-//        let date = formatter.string(from: dateArray[indexPath.row])
-//        var headerStyle : String = ""
-//        if let headerView = tableView.headerView(forSection: indexPath.section) {
-//            headerStyle = (headerView.textLabel?.text)!
-//            print(headerView.textLabel!.text!)
-//        }
-        //print(headerStyle)
-        //if headerStyle == date{
-            if noteArray[indexPath.row] != "" && nameArray[indexPath.row] != ""{
-                cellStyle.text = nameArray[indexPath.row]
-                cellStyle.secondaryText = noteArray[indexPath.row]
-            } else if noteArray[indexPath.row] != "" && nameArray[indexPath.row] == ""{
-                cellStyle.text = noteArray[indexPath.row]
-                cellStyle.secondaryText = "Нет дополнительного текста"
-            } else if noteArray[indexPath.row] == "" && nameArray[indexPath.row] != ""{
-                cellStyle.text = nameArray[indexPath.row]
-                cellStyle.secondaryText = "Нет дополнительного текста"
-            }
-        //}
+
+        var index = indexPath.row + indexPath.section * tableView.numberOfRows(inSection: indexPath.section)
+        
+        if noteArray[index] != "" && nameArray[index] != ""{
+            cellStyle.text = nameArray[index]
+            cellStyle.secondaryText = noteArray[index]
+        } else if noteArray[index] != "" && nameArray[index] == ""{
+            cellStyle.text = noteArray[index]
+            cellStyle.secondaryText = "Нет дополнительного текста"
+        } else if noteArray[index] == "" && nameArray[index] != ""{
+            cellStyle.text = nameArray[index]
+            cellStyle.secondaryText = "Нет дополнительного текста"
+        }
         cell.contentConfiguration = cellStyle
         cell.backgroundColor = UIColor.darkGray
+
         return cell
     }
     
-//    func numberOfSections(in tableView: UITableView) -> Int {
-//        for index in dateArray{
-//            let formatter = DateFormatter()
-//            formatter.setLocalizedDateFormatFromTemplate("MMMM")
-//            monthArray.append(formatter.string(from: index))
-//        }
-//        let set = Set(monthArray)
-//        monthArray = Array(set)
-//        return monthArray.count
-//    }
-//
-//    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-//        if section
-//    }
-//
-//    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-//        let headerView = UIView(frame: CGRect(x: 0, y: -10, width: tableView.frame.width, height: 30))
-//
-//
-//        let headerLabel = UILabel(frame: CGRect(x: 15, y: -10, width: tableView.frame.width - 15, height: 30))
-//        let date = Date()
-//        let formatter = DateFormatter()
-//        formatter.setLocalizedDateFormatFromTemplate("MMMM")
-//        let dateString = formatter.string(from: date)
-//        headerLabel.text = dateString
-//        headerLabel.textColor = UIColor.white
-//        headerView.addSubview(headerLabel)
-//
-//        return headerView
-//    }
+    func numberOfSections(in tableView: UITableView) -> Int {
+        setMonthArr()
+        return monthArray.count
+    }
+
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return monthArray[section]
+    }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch nameArray.count{
-        case 0:
-            bottomTitleText.text = "Нет заметок"
-        case 1:
-            bottomTitleText.text = "\(nameArray.count) заметка"
-        case 2..<5:
-            bottomTitleText.text = "\(nameArray.count) заметки"
-        default:
-            bottomTitleText.text = "\(nameArray.count) заметок"
+        var quantityRows : Int = 0
+        printLable()
+        for index in dateArray{
+            let formatter = DateFormatter()
+            formatter.setLocalizedDateFormatFromTemplate("MMMM")
+            let monthQuantity = formatter.string(from: index)
+            if monthQuantity == monthArray[section]{
+                quantityRows += 1
+            }
         }
-        return nameArray.count
+        return quantityRows
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete{
+            let index = indexPath.row + indexPath.section * tableView.numberOfRows(inSection: indexPath.section)
             let appDelegate = UIApplication.shared.delegate as! AppDelegate
             let context = appDelegate.persistentContainer.viewContext
             
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Note")
-            let idString = idArray[indexPath.row].uuidString
+            let idString = idArray[index].uuidString
             
             fetchRequest.predicate = NSPredicate(format: "id = %@", idString)
             fetchRequest.returnsObjectsAsFaults = false
@@ -189,10 +155,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 if results.count > 0 {
                     for result in results as! [NSManagedObject]{
                         if let id = result.value(forKey: "id") as? UUID{
-                            if id == idArray[indexPath.row] {
+                            if id == idArray[index] {
                                 context.delete(result)
-                                nameArray.remove(at: indexPath.row)
-                                idArray.remove(at: indexPath.row)
+                                nameArray.remove(at: index)
+                                idArray.remove(at: index)
+                                dateArray.remove(at: index)
+                                setMonthArr()
+                                printLable()
                                 self.tableView.reloadData()
                             }
                             do{
@@ -211,9 +180,10 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         }
     }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        selectedNote = nameArray[indexPath.row]
-        selectedNoteId = idArray[indexPath.row]
-        selectedSecondNote = noteArray[indexPath.row]
+        let index = indexPath.row + indexPath.section * tableView.numberOfRows(inSection: indexPath.section)
+        selectedNote = nameArray[index]
+        selectedNoteId = idArray[index]
+        selectedSecondNote = noteArray[index]
         performSegue(withIdentifier: "toNoteDetails", sender: nil)
     }
     
@@ -228,5 +198,35 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         }
     }
 
+    func setMonthArr(){
+        if !dateArray.isEmpty{
+            var checkDel = [String]()
+            for index in dateArray{
+                let formatter = DateFormatter()
+                formatter.setLocalizedDateFormatFromTemplate("MMMM")
+                if monthArray.firstIndex(of: formatter.string(from: index)) == nil{
+                   checkDel.append(formatter.string(from: index))
+                } else if checkDel.firstIndex(of: formatter.string(from: index)) == nil{
+                    checkDel.append(formatter.string(from: index))
+                }
+                monthArray = checkDel
+            }
+        } else{
+            monthArray.removeAll()
+        }
+    }
+    
+    func printLable(){
+        switch nameArray.count{
+        case 0:
+            bottomTitleText.text = "Нет заметок"
+        case 1:
+            bottomTitleText.text = "\(nameArray.count) заметка"
+        case 2..<5:
+            bottomTitleText.text = "\(nameArray.count) заметки"
+        default:
+            bottomTitleText.text = "\(nameArray.count) заметок"
+        }
+    }
 }
 
